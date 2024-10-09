@@ -3,12 +3,7 @@ layout: ../layouts/AboutLayout.astro
 title: "About"
 ---
 
-AstroPaper is a minimal, responsive and SEO-friendly Astro blog theme. I designed and crafted this based on [my personal blog](https://satnaing.dev/blog).
-
-This theme is aimed to be accessible out of the box. Light and dark mode are supported by
-default and additional color schemes can also be configured.
-
-This theme is self-documented \_ which means articles/posts in this theme can also be considered as documentations. So, see the documentation for more info.
+I used to be sinEagle, but now my name is Yorick. I have given up my previous Hexo blog and embraced Astro-paper. I will be sharing some Linux kernel-level technologies and my personal learning notes. Of course, it won't be limited to just that—I will also share everything related to computer science and programming.
 
 <div>
   <img src="/assets/dev.svg" class="sm:w-1/2 mx-auto" alt="coding dev illustration">
