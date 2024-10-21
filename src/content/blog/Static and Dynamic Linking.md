@@ -33,7 +33,7 @@ cpp hello.c > hello.i
 词法分析、语法分析、语义分析，优化生产相应的汇编代码文件。
 
 ```bash
-gcc -S hello.i -o hello.o
+gcc -S hello.i -o hello.s
 cc1 hello.c
 ```
 
@@ -59,3 +59,39 @@ gcc -c hello.s -o hello.o
 ## 静态链接
 
 链接的过程包括地址和空间分配（Address and Storage Allocation）、符号决议（Symbol Resolution）和重定位（Relocation）这几步
+
+静态链接的过程如下：
+![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241021152506.png)
+
+使用链接器时，会根据所引用其他模块的函数和全局变量无需知道它们的地址，链接器在链接时会根据引用的符号自动去相应的模块查找真正的地址。
+
+创建a.c和b.c，分别进行`gcc -c`生成`a.o`和`b.o`文件，
+```c
+// a.c
+#include <stdio.h>
+
+int main () {
+        int a = 2, b = 3;
+        int c = sum (a, b);
+        printf("%d\n", c);
+        return 0;
+}
+```
+```c
+// b.c
+int sum (int l, int r) {
+        return l + r;
+}
+```
+```bash
+gcc -c a.c -o a.o -g
+gcc -c b.c -o b.o -g
+objdump -dSCl a.o
+gcc a.o b.o -o ab
+objdump -dSCl ab
+```
+反编译`a.o`和`ab.o`进行对比
+![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241021180011.png)
+![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241021180045.png)
+
+在单独编译时，无法知道sum函数的地址，所以将目标地址设置成0，当链接器链接时进行了**目标地址的修正**， 这个地址修正的过程叫做**重定位**（Relocation），每个要被修正的地方叫一个**重定位入口（**Relocation Entry）。
