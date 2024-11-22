@@ -861,8 +861,6 @@ Linux和GCC支持装载时重定位，需要加上 `-shared`和`fPIC`参数，�
 
 ELF使用PLT（Procedure Linkage Table）来实现，当我们调用外部模块的函数时，按照通常做法是通过GOT中的项进行间接跳转。PLT为了实现延迟绑定，在这过程中间又增加了一层间接跳转。调用函数并不通过GOT跳转，而是通过`PLT`项的结构来进行跳转。
 
-
-
 重定位过程：第一次调用时通过PLT表跳转到GOT，再跳到动态链接器进行链接共享库、重定位、修改GOT表真实符号地址。第二次调用，直接从GOT表中跳转到符号真实地址，执行函数
 
 ![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241118143402.png)
@@ -924,7 +922,7 @@ gcc -shared -o libsub.so sub.o
 gcc -fPIC -shared -o libsub.so sub.c
 gcc main.c -L. -lsub -Wl,-rpath=. -o main -Wl,-z,lazy
 
-objdump -dSCl main -o main.s
+objdump -dSCl main > main.s
 
 ```
 
@@ -950,23 +948,15 @@ Hex dump of section '.got':
 
 前面8个字节存放了.dynamic的地址
 
-找到3fb0地址处的值为1030,其他的1040、1050类似，这些地址处的值为`endbr64`
+找到3fb0地址处的值为1030,其他的1040、1050类似，这些地址处的值为`endbr64`，
 
 ![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241118224203.png)
-
-
-
-
-
 
 ### 动态链接相关结构
 
 在动态链接的情况下，操作系统映射完可执行文件，会先启动一个**动态链接器**，而不是直接运行程序
 
 OS在加载完动态链接器后，将控制权交给动态链接器入口地址，然后进行一系列初始化，开始对可执行文件进行动态链接。
-
-
-
 
 ### 动态链接相关符号表
 
@@ -977,15 +967,11 @@ OS在加载完动态链接器后，将控制权交给动态链接器入口地址
 - 过程链接表（PLT）
 - 全局偏移表（GOT)
 
-
-
 #### 过程链接表（PLT）
 
 使用.plt后缀，内容是一个跳转指令，跳到GOT对应的项
 
 过程链接表无法单独工作，是和GOT相关联
-
-
 
 #### 全局偏移表
 
@@ -993,8 +979,6 @@ got表
 
 - 每个引用外部模块定义的符号在GOT表中都有相应的条目
 - .got： 编译器将对外引用（绝对地址）的符号全部分离出来放到该表中
-
-
 
 #### .interp段
 
@@ -1067,7 +1051,6 @@ root@sinserver:~/study/link# ldd ab
         /lib64/ld-linux-x86-64.so.2 (0x00007dfbc1b28000)
 ```
 
-
 #### 动态符号表
 
 在静态链接中，有一个专门的表叫`.symtab`（Symbol Table），保存了所有关于该目标文件的符号的定义和引用。动态链接的符号也类似，为了表示动态链接这些模块之间的符号导入导出关系，有一个段名叫做`.dynsym`，但它只保存了与动态链接相关的符号，对于那些模块内部的符号，比如模块私有变量则不保存。
@@ -1087,7 +1070,6 @@ Symbol table for image contains 7 entries:
      5: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMC[...]
      6: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND [...]@GLIBC_2.2.5 (3)
 ```
-
 
 #### 动态链接重定位表
 
@@ -1112,8 +1094,6 @@ Relocation section '.rela.plt' at offset 0x610 contains 1 entry:
 000000003fd0  000300000007 R_X86_64_JUMP_SLO 0000000000000000 printf@GLIBC_2.2.5 + 0
 ```
 
-
-
 ### 动态链接的步骤和实现
 
 首先会先启动动态链接器，然后装载所有需要的共享对象，最后进行重定位和初始化
@@ -1126,13 +1106,9 @@ Relocation section '.rela.plt' at offset 0x610 contains 1 entry:
 
 动态链接器将可执行文件和链接器本身的符号表合并到**全局符号表**中，然后将可执行文件中依赖的共享对象的名字放入到一个装载集合中，从集合中取一个所需要共享对象的名字，将相应的文件打开后读取相应的ELF文件头和.dynamic段，然后将相应的代码段和数据段映射到进程空间中，如果ELF共享对象还依赖其他的共享对象，再这样递归进行装载。
 
-
-
 #### 重定位和初始化
 
 链接器开始重新遍历可执行文件和每个共享对象的重定位表，将它们的GOT/PLT中的每个需要重定位的位置进行修正。
-
-
 
 ## Linux下的共享库
 
@@ -1141,13 +1117,5 @@ Relocation section '.rela.plt' at offset 0x610 contains 1 entry:
 /lib：存放系统最关键和基础的共享库
 /usr/lib: 非系统运行所需要的关键性共享库，开发时可能会用到的静态库、目标文件
 /usr/local/lib: 主要存放第三方应用程序所需要的共享库
-
-
-
-
-
-
-
-
 
 ### end
