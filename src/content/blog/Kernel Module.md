@@ -353,12 +353,17 @@ static int load_module(struct load_info *info, const char __user *uargs,
 ```
 
 之后执行do_init_module函数,主要进行初始化操作，获取hello_init函数，调用完后，进行释放相应的内存
-freeinit->module_init = mod->init_layout.base： 获取将init函数指针赋值，因为之前模块入口函数添加了`__init`, 会将该函数放到`.init.text`段中
+
+freeinit->module_init = mod->init_layout.base
+
+- 获取将init函数指针赋值，因为之前模块入口函数添加了`__init`, 会将该函数放到`.init.text`段中
 
 do_one_initcall(mod->init)
 
 ftrace_free_mem(mod, mod->init_layout.base, mod->init_layout.base +
-mod->init_layout.size) ： 进行释放init函数的内存，因为这段初始化代码只运行一次，为了节省空间，进行释放
+mod->init_layout.size)
+
+- 进行释放init函数的内存，因为这段初始化代码只运行一次，为了节省空间，进行释放
 
 ```cpp
 static noinline int do_init_module(struct module *mod)
@@ -496,3 +501,39 @@ int __init_or_module do_one_initcall(initcall_t fn)
 	return ret;
 }
 ```
+
+
+
+```cpp
+static int move_module(struct module *mod, struct load_info *info)
+{
+        int i;
+        void *ptr;
+
+        /* Do the allocs. */
+        ptr = module_alloc(mod->core_layout.size);
+        /*
+         * The pointer to this block is stored in the module structure
+         * which is inside the block. Just mark it as not being a
+         * leak.
+         */
+        kmemleak_not_leak(ptr);
+        if (!ptr)
+                return -ENOMEM;
+
+        memset(ptr, 0, mod->core_layout.size);
+        mod->core_layout.base = ptr;
+	    ....
+}
+
+```
+
+
+
+
+
+__visible 宏：它是内核中用来显式标记某些符号的可见性，使得这些符号在内核模块中是可见的，特别是在内核模块之间的符号共享。
+
+内核符号的导出意味着该符号可以被其他内核模块访问。内核符号导出通常使用 `EXPORT_SYMBOL` 或 `EXPORT_SYMBOL_GPL` 宏来实现。`__visible` 宏通常与 `EXPORT_SYMBOL` 一起使用，用于确保符号在内核模块加载时可见。
+
+- `EXPORT_SYMBOL` 宏会将一个符号从内核模块中导出，允许其他模块访问它。如果你想将符号标记为可以导出的，可以将其与 `__visible` 宏一起使用。

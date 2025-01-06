@@ -12,9 +12,18 @@ description: Static and Dynamic Linking Note
 ---
 ## Table of contents
 
-## 概述
+## 编译和链接
 
-在我们进行GCC编译用户程序时，分为四个步骤：预处理（Prepressing)、编译（Compilation)、汇编(Assembly)、链接(Linking)
+通过我们直接使用gcc编译运行源文件时，实际分为四个过程，整体过程如下所示
+
+* 预处理（Prepressing)
+* 编译（Compilation)
+* 汇编(Assembly)
+* 链接(Linking)
+
+---
+
+![](assets/ad327.png)
 
 ### 预编译
 
@@ -25,7 +34,10 @@ gcc -E hello.c -o hello.i
 cpp hello.c > hello.i
 ```
 
-展开所有的宏定义、处理条件预编译指令、删除注释、添加调试的行号、保留#pramgma编译器指令
+* 展开所有的宏定义
+* 处理条件预编译指令
+* 删除注释、添加调试的行号、
+* 保留#pramgma编译器指令
 
 ### 编译
 
@@ -38,6 +50,76 @@ cc1 hello.c
 
 gcc实际上是后台程序封装，根据不同参数要求去调用：cc1、as、ld
 
+由于早期直接使用机器语言和汇编语言编写指令十分费事，而且总是依赖于特定的机器，无法令人接受，所以人们期望采用自然语言的形式来描述程序，后来诞生出了各种编程语言
+
+编译过程可以分为六步：
+
+- 词法分析
+- 语法分析
+- 语义分析
+- 中间语言生成
+- 目标代码优化
+
+#### 词法分析
+
+将源代码输入到扫描器，进行词法分析，将源代码的字符序列分割成一系列的记号，
+
+词法分析产生的记号一般可以分为如下几类：关键字、标识符、字面量（包括数字、字符串等）和特殊符号（如加号、等号）。在识别记号的同时，并将标识符存放到符号表，将数字、字符串常量存放到文字表
+
+* `int` -> 关键字
+* `a` -> 标识符
+* `=` -> 运算符
+* `5` -> 常量
+* `;` -> 分号
+
+#### 语法分析
+
+语法分析器将对由扫描器产生的记号进行语法分析，生成语法树表达式，检查语法的正确性（比如表达式不正确、括号不匹配、缺少操作符等）
+
+```cpp
+int a = b + c;
+    =
+   / \
+  a   +
+     / \
+    b   c
+
+```
+
+#### 语义分析
+
+语法分析是在语句上检查是否有意义
+
+编译期分析的语意是**静态语意**，检查不同类型之间进行运算、不同类型数值之前的转换是否合法
+
+运行期间进行分析的语意是**动态语义**，比如除零不合法
+
+语义分析器还对符号表里的符号类型也做了更新。
+
+#### 中间语言的生成
+
+将语法树转化为与硬件无关的中间语言
+
+中间代码通常采用三地址码、P代码形式
+
+比如a = b + c * d; 生成的三地址码如下
+
+```cpp
+t1 = c * d
+t2 = b + t1
+a = t2
+```
+
+编译期前端将产生机器无关的中间代码，编译器后端针对不同的机器平台生成目标机器代码
+
+#### 目标代码生成与优化
+
+编译器后端包括**代码生成器**和**目标代码优化器**
+
+代码生成器将中间代码转换成目标机器代码
+
+目标代码优化器对目标代码进行优化，用位移代替乘法：1<<32 等等价于 2^32，删除多余的指令等
+
 ### 汇编
 
 通过汇编器将汇编代码转换成机器指令，生成目标文件（Object File）
@@ -47,18 +129,18 @@ as hello.s -o hello.o
 gcc -c hello.s -o hello.o
 ~~~
 
+通过汇编器将汇编代码转换成机器指令，生成目标文件（Object File）
+
+在这个过程中会生重定位表、符号表，便于后续链接过程
+
 ### 链接
 
 分为动态链接和静态链接
 
-静态链接大致如下：
+分为动态链接和静态链接
 
-链接的过程包括地址和空间分配（Address and Storage Allocation）、符号决议（Symbol Resolution）和重定位（Relocation）这几步
-
-静态链接的过程如下：
-![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241021152506.png)
-
-使用链接器时，会根据所引用其他模块的函数和全局变量无需知道它们的地址，链接器在链接时会根据引用的符号自动去相应的模块查找真正的地址。
+* 链接的过程包括地址和空间分配（Address and Storage Allocation）、符号决议（Symbol Resolution）和重定位（Relocation）这几步
+* 使用链接器时，会根据所引用其他模块的函数和全局变量无需知道它们的地址，链接器在链接时会根据引用的符号自动去相应的模块查找真正的地址。
 
 创建a.c和b.c，分别进行`gcc -c`生成`a.o`和`b.o`文件，
 
@@ -97,6 +179,8 @@ objdump -dSCl ab
 
 ## 目标文件
 
+目标文件的结构因平台和格式而异，但通常遵循某种文件格式，如 ELF（Executable and Linkable Format）在 Linux 中广泛使用。
+
 目前可执行文件格式Windows下的PE（Portable Executable Linkable Format）和Linux下的ELF（Executable Linkable Format）都是COFF（Common file format）格式的变种。目标文件就是源代码编译但未进行链接的哪些中间文件（.obj或.o文件）。
 动态链接库（.dll、.so）、静态链接库（.lib、.a）文件也都按照可执行文件格式存储
 ELF标准中把系统中采用的ELF文件格式归为以下4类
@@ -104,45 +188,24 @@ ELF标准中把系统中采用的ELF文件格式归为以下4类
 
 | ELF文件类型      | 说明                                                                                                                                              | 实例                             |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 可重定位目标文件 | 包含了代码和数据、静态链接库                                                                                                                      | Linux下.o、Windows下的.obj       |
+| 可重定位目标文件 | 包含了代码和数据、进行链接后会生成可执行文件、共享目标文件                                                                                        | Linux下.o、Windows下的.obj       |
 | 可执行文件       | 可以直接执行的程序                                                                                                                                | /bin/bash下的文件、Windows的.exe |
 | 共享目标文件     | 包含代码和数据，1.链接器使用这种文件跟其他可重定位文件和目标文件进行链接 2.动态连接器将这几种共享目标文件和可执行文件结合、进程映像的一部分来运行 | Linux下的.so Windows下的DLL      |
 | 核心转储·文件   | 当进程意外终止时，系统可以将改进程的地址空间的内容及终止时的一些其他信息转储到核心转储文件                                                        | Linux下的 core dump              |
 
 ```bash
-@sinserver:~/study# file perf_event_open.o
-perf_event_open.o: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
-root@sinserver:~/study# file perf_event_open
-perf_event_open: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=364416fe87f07e054089c81de8852d4ee865d22e, for GNU/Linux 3.2.0, with debug_info, not stripped
+root@wangzy115-bp3eh ~/s/Link (link_example_1)# file a.o
+a.o: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), with debug_info, not stripped
+
+root@wangzy115-bp3eh ~/s/Link (link_example_1)# file ab
+ab: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, with debug_info, not stripped
+
 ```
 
 通过`file`命令查看对应的文件格式，通过`readelf`命令查看程序头
 
 ```bash
-
-root@sinserver:~/study# readelf -h perf_event_open.o
-ELF Header:
-  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
-  Class:                             ELF64
-  Data:                              2's complement, little endian
-  Version:                           1 (current)
-  OS/ABI:                            UNIX - System V
-  ABI Version:                       0
-  Type:                              REL (Relocatable file)
-  Machine:                           Advanced Micro Devices X86-64
-  Version:                           0x1
-  Entry point address:               0x0
-  Start of program headers:          0 (bytes into file)
-  Start of section headers:          1496 (bytes into file)
-  Flags:                             0x0
-  Size of this header:               64 (bytes)
-  Size of program headers:           0 (bytes)
-  Number of program headers:         0
-  Size of section headers:           64 (bytes)
-  Number of section headers:         14
-  Section header string table index: 13
-
-root@sinserver:~/study# readelf -h perf_event_open
+root@wangzy115-bp3eh ~/s/Link (link_example_1)# readelf -h ab
 ELF Header:
   Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
   Class:                             ELF64
@@ -153,16 +216,18 @@ ELF Header:
   Type:                              DYN (Position-Independent Executable file)
   Machine:                           Advanced Micro Devices X86-64
   Version:                           0x1
-  Entry point address:               0x1140
+  Entry point address:               0x1060
   Start of program headers:          64 (bytes into file)
-  Start of section headers:          18808 (bytes into file)
+  Start of section headers:          15176 (bytes into file)
   Flags:                             0x0
   Size of this header:               64 (bytes)
   Size of program headers:           56 (bytes)
-  Number of program headers:         13
+  Number of program headers:         12
   Size of section headers:           64 (bytes)
-  Number of section headers:         37
-  Section header string table index: 36
+  Number of section headers:         34
+  Section header string table index: 33
+
+
 ```
 
 ### 目标文件的格式
@@ -177,33 +242,11 @@ ELF文件格式分为：
 - 符号表
 - 各个段
 
+![](assets/20241229_232939_image.png)
+
 ### ELF文件头 (ELF Header)
 
 包含整个文件的基本属性，文件头中定义了ELF魔数、文件机器字节长度、数据存储方式、版本、运行平台、ABI版本、ELF重定位类型、硬件平台、硬件平台版本、入口地址、程序头入口和长度、段表的位置及段的数量。
-
-```bash
-root@sinserver:~/study# readelf -h perf_event_open
-ELF Header:
-  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
-  Class:                             ELF64
-  Data:                              2's complement, little endian
-  Version:                           1 (current)
-  OS/ABI:                            UNIX - System V
-  ABI Version:                       0
-  Type:                              DYN (Position-Independent Executable file)
-  Machine:                           Advanced Micro Devices X86-64
-  Version:                           0x1
-  Entry point address:               0x1140
-  Start of program headers:          64 (bytes into file)
-  Start of section headers:          18808 (bytes into file)
-  Flags:                             0x0
-  Size of this header:               64 (bytes)
-  Size of program headers:           56 (bytes)
-  Number of program headers:         13
-  Size of section headers:           64 (bytes)
-  Number of section headers:         37
-  Section header string table index: 36
-```
 
 ELF魔数：最前面的 Magic 的十六个字节表示
 
@@ -213,84 +256,117 @@ ELF魔数：最前面的 Magic 的十六个字节表示
 - 第6个字节表示ELF文件的主版本号，一般是1
 - 后面的9个字节ELF标准没有定义，作为扩展使用
 
-### 节头部表（Section Header Table）
 
-描述了ELF各个段的信息，比如每个段的段名、段的长度、在文件中的偏移、读写权限及段的其他属性。ELF的段结构就是由段表决定的。
+默认我们内核是开启地址随机化的
 
 ```bash
-root@sinserver:~/study# readelf -W -S perf_event_open
-There are 37 section headers, starting at offset 0x4978:
+root@wangzy115-bp3eh ~/s/Link (link_example_1)# cat /proc/sys/kernel/randomize_va_space
 
-Section Headers:
-  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
-  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
-  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1
-  [ 2] .note.gnu.property NOTE            0000000000000338 000338 000030 00   A  0   0  8
-  [ 3] .note.gnu.build-id NOTE            0000000000000368 000368 000024 00   A  0   0  4
-  [ 4] .note.ABI-tag     NOTE            000000000000038c 00038c 000020 00   A  0   0  4
-  [ 5] .gnu.hash         GNU_HASH        00000000000003b0 0003b0 000024 00   A  6   0  8
-  [ 6] .dynsym           DYNSYM          00000000000003d8 0003d8 000150 18   A  7   1  8
-  [ 7] .dynstr           STRTAB          0000000000000528 000528 0000d1 00   A  0   0  1
-  [ 8] .gnu.version      VERSYM          00000000000005fa 0005fa 00001c 02   A  6   0  2
-  [ 9] .gnu.version_r    VERNEED         0000000000000618 000618 000040 00   A  7   1  8
-  [10] .rela.dyn         RELA            0000000000000658 000658 0000c0 18   A  6   0  8
-  [11] .rela.plt         RELA            0000000000000718 000718 0000c0 18  AI  6  24  8
-  [12] .init             PROGBITS        0000000000001000 001000 00001b 00  AX  0   0  4
-  [13] .plt              PROGBITS        0000000000001020 001020 000090 10  AX  0   0 16
-  [14] .plt.got          PROGBITS        00000000000010b0 0010b0 000010 10  AX  0   0 16
-  [15] .plt.sec          PROGBITS        00000000000010c0 0010c0 000080 10  AX  0   0 16
-  [16] .text             PROGBITS        0000000000001140 001140 000253 00  AX  0   0 16
-  [17] .fini             PROGBITS        0000000000001394 001394 00000d 00  AX  0   0  4
-  [18] .rodata           PROGBITS        0000000000002000 002000 00002b 00   A  0   0  4
-  [19] .eh_frame_hdr     PROGBITS        000000000000202c 00202c 00003c 00   A  0   0  4
-  [20] .eh_frame         PROGBITS        0000000000002068 002068 0000cc 00   A  0   0  8
-  [21] .init_array       INIT_ARRAY      0000000000003d80 002d80 000008 08  WA  0   0  8
-  [22] .fini_array       FINI_ARRAY      0000000000003d88 002d88 000008 08  WA  0   0  8
-  [23] .dynamic          DYNAMIC         0000000000003d90 002d90 0001f0 10  WA  7   0  8
-  [24] .got              PROGBITS        0000000000003f80 002f80 000080 08  WA  0   0  8
-  [25] .data             PROGBITS        0000000000004000 003000 000010 00  WA  0   0  8
-  [26] .bss              NOBITS          0000000000004010 003010 000008 00  WA  0   0  1
-  [27] .comment          PROGBITS        0000000000000000 003010 000026 01  MS  0   0  1
-  [28] .debug_aranges    PROGBITS        0000000000000000 003036 000030 00      0   0  1
-  [29] .debug_info       PROGBITS        0000000000000000 003066 00071c 00      0   0  1
-  [30] .debug_abbrev     PROGBITS        0000000000000000 003782 0001d5 00      0   0  1
-  [31] .debug_line       PROGBITS        0000000000000000 003957 0000c7 00      0   0  1
-  [32] .debug_str        PROGBITS        0000000000000000 003a1e 000651 01  MS  0   0  1
-  [33] .debug_line_str   PROGBITS        0000000000000000 00406f 0000f5 01  MS  0   0  1
-  [34] .symtab           SYMTAB          0000000000000000 004168 000420 18     35  18  8
-  [35] .strtab           STRTAB          0000000000000000 004588 000281 00      0   0  1
-  [36] .shstrtab         STRTAB          0000000000000000 004809 00016a 00      0   0  1
+2
 
 ```
 
-readelf -S 输出的结果就是段表的内容
+![](assets/20250106_190917_image.png)
+
+
+![](assets/20250106_190952_image.png)
+
+Type: DYN：动态共享对象文件或位置无关可执行文件
+
+Position-Independent Executable (PIE)：
+
+* `DYN` 类型文件通常是位置无关可执行文件（PIE) 或共享库（Shared Library）
+* 这意味着代码可以被加载到内存中的任何地址，而不需要固定的加载基址。
+* 使用位置无关代码（Position-Independent Code, PIC），使得代码中的绝对地址依赖被最小化。
+
+
+| 特性                 | EXEC（Executable）       | DYN（Position-Independent Executable, PIE） |
+| ---------------------- | -------------------------- | --------------------------------------------- |
+| 加载地址             | 固定加载地址             | 随机化（受 ASLR 影响）                      |
+| 是否使用绝对地址     | 使用绝对地址             | 使用相对地址                                |
+| 是否可重定位         | 不可重定位               | 可重定位                                    |
+| 安全性（抗攻击能力） | 较低                     | 较高（因为地址随机化）                      |
+| 调用共享库           | 支持                     | 支持                                        |
+| 示例                 | 标准静态或动态可执行文件 | 启用 PIE 选项编译的可执行文件               |
+
+动态加载与链接:
+
+* DYN 文件通常需要一个动态链接器来加载和解析符号。
+* 动态链接器负责将 DYN 文件和其依赖的库加载到内存，并处理符号重定位。
+
+在编译时加入`-no-pie`参数后，观察生成的可执行文件，Type变成了EXEC（Executable file）,以及Entry point address的地址变化
+
+![](assets/20250106_224031_image.png)
+
+然后我们关闭地址随机化
+
+![](assets/20250106_231218_image.png)
+
+使用默认编译
+
+![](assets/20250106_231449_image.png)
+
+加入`-no-pie`参数后
+
+![](assets/20250106_231159_image.png)
+
+
+
+
+### 节头部表（Section Header Table）
+
+节头部表描述了ELF各个段的信息，比如每个段的段名、段的长度、在文件中的偏移、读写权限及段的其他属性。
+
+ELF的段结构就是由段表决定的。通过 `readelf -S` 命令可以进行查看
+
+![](assets/20241231_145630_1735628181271.jpg)
+
+* **Name** - **节区名称（Section Name）**
+  * 显示节区的名称。例如`.text`、`.data`、`.bss` 等。若没有名称，可能显示为`NULL` 或空字符串。
+* **Type** - **节区类型（Section Type）**
+  * 显示节区的类型，决定该节区的用途。例如：
+    * `PROGBITS`：包含程序数据或代码。
+    * `STRTAB`：字符串表，存储字符串。
+    * `DYNSYM`：动态符号表，包含动态链接时使用的符号。
+    * `RELA`：重定位表，包含程序的重定位信息。
+    * `GNU_HASH`：GNU 格式的符号哈希表等。
+* **Address** - **节区加载地址（Section Address）**
+  * 显示该节区在内存中的加载地址。该地址指示节区在程序运行时加载到内存中的位置。若节区不需要加载到内存（如`.bss`），此字段可能为`0` 或`0x0`。
+* **Off** - **节区偏移（Section Offset）**
+  * 表示节区在文件中的偏移量，也就是该节区从文件开头开始的字节位置。它决定了节区在 ELF 文件中的起始位置。
+* **Size** - **节区大小（Section Size）**
+  * 显示节区的字节大小，表示该节区在文件或内存中的占用空间大小。如果节区没有实际数据（例如`.bss`），它可能为 0 或一个虚拟大小。
+* **ES** - **节区条目大小（Entry Size）**
+  * 对于某些类型的节区（如符号表、重定位表等），显示节区条目的大小。即每个元素所占用的字节数。
+    * 例如，符号表`.dynsym` 的条目大小是 18 字节。
+* **Flg** - **节区标志（Flags）**
+  * 显示节区的标志，描述节区的特性，使用字符表示：
+    * `A`：节区可分配（Allocated），表示它会被加载到内存。
+    * `X`：节区可执行（Executable），表示它包含可执行代码。
+    * `W`：节区可写（Writable），表示它可以被修改。
+    * `I`：信息（Info），通常表示该节区包含信息，比如重定位信息。
+    * `L`：包含本地符号（Local），该节区只包含局部符号。
+    * `M`：合并（Merge），表示节区支持合并。
+    * `S`：支持分段（String），通常用于字符串表。
+* **Lk** - **节区链接（Section Link）**
+  * 表示节区之间的链接。通常指向与该节区相关的节区或段。比如对于符号表，它会链接到字符串表。
+* **Inf** - **节区信息（Section Info）**
+  * 对于某些类型的节区，表示附加的节区信息。例如，对于符号表，它可能是符号的数量；对于重定位表，它可能是重定位条目的数量。
+* **Al** - **节区对齐（Section Alignment）**
+  * 表示节区在内存中的对齐要求。节区的起始位置必须满足特定的对齐约束。
+  * 例如，`Al` 的值可能为 4，表示节区必须在 4 字节对齐的位置开始；如果为 16，则意味着节区必须在 16 字节对齐的位置开始。
 
 ### 程序头表（Program header table）
 
-描述ELF的 "Segment"
+描述ELF的Segment，用于加载程序时的内存映射
 
 通过`readelf -l`命令查看可执行文件中的段
 
-```bash
-root@sinserver:~/study# readelf -l SectionMapping.elf -W
+`LOAD`类型的segment需要被映射，根据Flg不同的标志位映射到不同的`VMA`，只有可执行文件和共享库文件才需要有程序头表，目标文件是没有的，面向运行时内存映射
 
-Elf file type is EXEC (Executable file)
-Entry point 0x401720
-There are 10 program headers, starting at offset 64
+`readelf -l ab -W`
 
-Program Headers:
-  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align
-  LOAD           0x000000 0x0000000000400000 0x0000000000400000 0x0004f8 0x0004f8 R   0x1000
-  LOAD           0x001000 0x0000000000401000 0x0000000000401000 0x07d6b1 0x07d6b1 R E 0x1000
-  LOAD           0x07f000 0x000000000047f000 0x000000000047f000 0x0259ec 0x0259ec R   0x1000
-  LOAD           0x0a4f50 0x00000000004a5f50 0x00000000004a5f50 0x005b78 0x00b2f8 RW  0x1000
-  NOTE           0x000270 0x0000000000400270 0x0000000000400270 0x000030 0x000030 R   0x8
-  NOTE           0x0002a0 0x00000000004002a0 0x00000000004002a0 0x000044 0x000044 R   0x4
-  TLS            0x0a4f50 0x00000000004a5f50 0x00000000004a5f50 0x000018 0x000058 R   0x8
-  GNU_PROPERTY   0x000270 0x0000000000400270 0x0000000000400270 0x000030 0x000030 R   0x8
-  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10
-
-```
+![](assets/20241231_155558_image.png)
 
 `LOAD`类型的segment需要被映射
 
@@ -300,141 +376,78 @@ Program Headers:
 
 ### 重定位表
 
-链接器在处理目标文件时，需要对目标文件一些部位进行重定位，修正地址引用的位置，对于每个需要重定位的代码段或数据段，都需要一个相应的重定位表。比如`.rel.txt`就是`.text`的重定位表
+链接器怎么知道哪些指令是需要被调整的呢？
 
-通过 `objdump -r` 命令可以
+* 在ELF文件中有重定位表用来描述如何修改相应段里的内容
+* 通过 `objdump -r` 或 `readelf -r` 命令可以查看对应的目标文件需要重定位的地方
 
-```bash
-root@sinserver:~/study# objdump -r a.o
+链接器在处理目标文件时，需要对目标文件一些部位进行重定位，修正地址引用的位置，对于每个需要重定位的代码段或数据段，都需要一个相应的重定位表。比如`.rel.text`就是`.text`的重定位表
 
-a.o:     file format elf64-x86-64
+![](assets/20241231_153451_1735630488864.jpg)
 
-RELOCATION RECORDS FOR [.text]:
-OFFSET           TYPE              VALUE
-0000000000000029 R_X86_64_PC32     shared-0x0000000000000004
-0000000000000039 R_X86_64_PLT32    swap-0x0000000000000004
-0000000000000052 R_X86_64_PLT32    __stack_chk_fail-0x0000000000000004
+![](http://localhost:10001/media/uploads/af37f089404843f19578bf20b0291a0d.png)
 
-```
+* Offset: 表示需要纠正的符号引用的起始位置在目标段的偏移
+* Info: 包含符号索引和类型信息。
+  * 前 8 位表示符号索引，指向目标文件符号表 (.symtab)
+  * 后 8 位表示重定位类型（如 0002 表示 R_X86_64_PC32，0004 表示 R_X86_64_PLT32）。
+* Type: 重定位类型，表示如何修正地址。
+  * `R_X86_64_PC32`：相对地址重定位。
+  * `R_X86_64_32`：绝对地址重定位。
+  * `R_X86_64_JUMP_SLOT`：函数调用入口的重定位。
+* Sym.Value: 符号的当前值（在未链接时为 0）。
+* Sym.Name + Addend: 符号名称偏移量
+
+![](assets/20241231_154533_1735631125954.jpg)
+
+![](assets/20241231_154317_1735630993510.jpg)
 
 ### BSS段
 
-未初始化的全局变量和局部静态变量，只是预留一个**未定义的全局变量符号**，等最终链接为可执行文件时再分配空间
+BSS段未初始化的全局变量和静态变量，只是预留一个**未定义的全局变量符号**，等最终链接为可执行文件时再分配空间
+
+初始化为零的变量也会被归入 BSS 段，因为它们无需在目标文件中存储实际值。
+
+当程序加载到内存时，BSS 段中的所有变量会自动初始化为零。
 
 ### 代码段
+
+代码段也称为 `.text` 段，是目标文件或可执行文件中存储程序**机器指令** 的一部分。它包含程序的实际执行代码
 
 ### .data段
 
 保存已经初始化的全局静态变量和局部静态变量，前4个字节涉及CPU字节序
 
+数据段是目标文件或可执行文件中专门用于存储**已初始化的全局变量和静态变量** 的内存区域。这些变量在程序执行期间保留其值，直到程序结束。
+
 ### .rodata
 
 存放只读数据
 
-### ELF符号表
+### .symtab表
 
-在ELF文件中有一段叫 .symtab的符号表，包含了以下信息
+每个目标文件都有一个符号表，记录了所有到的所有的符号，每个符号都有一个对应的值，叫做符号值，对于函数或变量来说，符号值就是他们的地址，当然还存在其他的符号，分类如下：
 
-![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241024133643.png)
+* 定义在本目标文件中的全局符号
+* 所引用的全局符号，即外部符号
+* 段名，由编译器产生，值是该段的其实地址
+* 局部符号，编译单元内部可见
+* 行号信息，目标文件中的指令和源代码中的对应关系
 
-使用`readelf -s `命令输出格式与上面一一对应
-
-```bash
-root@sinserver:~/study# readelf -s perf_event_open.o
-
-Symbol table '.symtab' contains 14 entries:
-   Num:    Value          Size Type    Bind   Vis      Ndx Name
-     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
-     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS perf_event_open.c
-     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 .text
-     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 .rodata
-     4: 0000000000000000    72 FUNC    GLOBAL DEFAULT    1 perf_event_open
-     5: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND syscall
-     6: 0000000000000048   290 FUNC    GLOBAL DEFAULT    1 main
-     7: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND memset
-     8: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND perror
-     9: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND ioctl
-    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND read
-    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printf
-    12: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND sleep
-    13: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND __stack_chk_fail
-
-root@sinserver:~/study# readelf -s perf_event_open
-
-Symbol table '.dynsym' contains 14 entries:
-   Num:    Value          Size Type    Bind   Vis      Ndx Name
-     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
-     1: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND _[...]@GLIBC_2.34 (2)
-     2: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterT[...]
-     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __[...]@GLIBC_2.4 (3)
-     4: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (4)
-     5: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (4)
-     6: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND ioctl@GLIBC_2.2.5 (4)
-     7: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND read@GLIBC_2.2.5 (4)
-     8: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (4)
-     9: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__
-    10: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (4)
-    11: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMC[...]
-    12: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND sleep@GLIBC_2.2.5 (4)
-    13: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND [...]@GLIBC_2.2.5 (4)
-
-Symbol table '.symtab' contains 44 entries:
-   Num:    Value          Size Type    Bind   Vis      Ndx Name
-     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
-     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS Scrt1.o
-     2: 000000000000038c    32 OBJECT  LOCAL  DEFAULT    4 __abi_tag
-     3: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c
-     4: 0000000000001170     0 FUNC    LOCAL  DEFAULT   16 deregister_tm_clones
-     5: 00000000000011a0     0 FUNC    LOCAL  DEFAULT   16 register_tm_clones
-     6: 00000000000011e0     0 FUNC    LOCAL  DEFAULT   16 __do_global_dtors_aux
-     7: 0000000000004010     1 OBJECT  LOCAL  DEFAULT   26 completed.0
-     8: 0000000000003d88     0 OBJECT  LOCAL  DEFAULT   22 __do_global_dtor[...]
-     9: 0000000000001220     0 FUNC    LOCAL  DEFAULT   16 frame_dummy
-    10: 0000000000003d80     0 OBJECT  LOCAL  DEFAULT   21 __frame_dummy_in[...]
-    11: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS perf_event_open.c
-    12: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c
-    13: 0000000000002130     0 OBJECT  LOCAL  DEFAULT   20 __FRAME_END__
-    14: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS
-    15: 0000000000003d90     0 OBJECT  LOCAL  DEFAULT   23 _DYNAMIC
-    16: 000000000000202c     0 NOTYPE  LOCAL  DEFAULT   19 __GNU_EH_FRAME_HDR
-    17: 0000000000003f80     0 OBJECT  LOCAL  DEFAULT   24 _GLOBAL_OFFSET_TABLE_
-    18: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_mai[...]
-    19: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterT[...]
-    20: 0000000000004000     0 NOTYPE  WEAK   DEFAULT   25 data_start
-    21: 0000000000004010     0 NOTYPE  GLOBAL DEFAULT   25 _edata
-    22: 0000000000001394     0 FUNC    GLOBAL HIDDEN    17 _fini
-    23: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __stack_chk_fail[...]
-    24: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND printf@GLIBC_2.2.5
-    25: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND memset@GLIBC_2.2.5
-    26: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND ioctl@GLIBC_2.2.5
-    27: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND read@GLIBC_2.2.5
-    28: 0000000000004000     0 NOTYPE  GLOBAL DEFAULT   25 __data_start
-    29: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND syscall@GLIBC_2.2.5
-    30: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__
-    31: 0000000000004008     0 OBJECT  GLOBAL HIDDEN    25 __dso_handle
-    32: 0000000000002000     4 OBJECT  GLOBAL DEFAULT   18 _IO_stdin_used
-    33: 0000000000004018     0 NOTYPE  GLOBAL DEFAULT   26 _end
-    34: 0000000000001140    38 FUNC    GLOBAL DEFAULT   16 _start
-    35: 0000000000004010     0 NOTYPE  GLOBAL DEFAULT   26 __bss_start
-    36: 0000000000001271   290 FUNC    GLOBAL DEFAULT   16 main
-    37: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND perror@GLIBC_2.2.5
-    38: 0000000000004010     0 OBJECT  GLOBAL HIDDEN    25 __TMC_END__
-    39: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMC[...]
-    40: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND sleep@GLIBC_2.2.5
-    41: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@G[...]
-    42: 0000000000001000     0 FUNC    GLOBAL HIDDEN    12 _init
-    43: 0000000000001229    72 FUNC    GLOBAL DEFAULT   16 perf_event_open
-
-
-```
+![](assets/20241231_153038_1735630222548.jpg)
 
 ### 强符号和弱符号
 
-C/C++来说，编译器默认函数和初始化的全局变量为强符号，未初始化的全局变量为弱符号
+强符号：函数名、初始化的全局变量
 
-规则如下：
+* 不允许多次定义
+* 强符号可以覆盖弱符号
 
-![](https://cdn.jsdelivr.net/gh/sineagle/pic_image@master/20241024142045.png)
+弱符号：未初始化的全局变量
+
+* 允许多个弱符号
+* 编译期间由于不知道弱符号的大小，通过COMMON符号标记
+* 链接期间，当存在多个弱符号，选择占用空间最大的
 
 强引用和弱引用
 
@@ -495,9 +508,10 @@ void nomain () {
 ```
 
 ```bash
-gcc -c -fno-builtin -nostdlib -static -m32 -fno-asynchronous-unwind-tables -fno-pic -fno-pie TinyHelloWorld.c -o TinyHelloWorld.o
-
-ld -static -e nomain -o TinyHelloWorld TinyHelloWorld.o -m elf_i386
+gcc -c -fno-builtin -nostdlib -static -m64 -fno-asynchronous-unwind-tables \
+   -fno-pic -fno-pie TinyHelloWorld.c -o TinyHelloWorld.o
+ld -static -e nomain -o TinyHelloWorld \
+   TinyHelloWorld.o -m elf_x86_64
 
 ```
 
@@ -600,7 +614,7 @@ Hello World!
 首先要进行进程的创建
 
 - 创建虚拟地址空间
-  - 虚拟地址空间由一组页映射函数将虚拟地址空间的各个页映射到相应的物理地址空间，创建虚拟地址空间就是创建映射函数所需要的相应的数据结构，在i386的Linux中，创建虚拟地址空间实际上是分配一个页目录，不需要建立页的映射关系，这些映射关系等到后面发生页错误的时候再进行设置，完成虚拟空间和物理内存的应黑色
+  - 虚拟地址空间由一组页映射函数将虚拟地址空间的各个页映射到相应的物理地址空间，创建虚拟地址空间就是创建映射函数所需要的相应的数据结构，在i386的Linux中，创建虚拟地址空间实际上是分配一个页目录，不需要建立页的映射关系，这些映射关系等到后面发生页错误的时候再进行设置，完成虚拟空间和物理内存的映射
 - 读取可执行文件头，建立虚拟地址空间与可执行文件的映射关系。
   - 当缺页异常发生时，程序需要知道所需要的页在可执行文件中的哪个位置，这也是"装载"的重要过程
 
