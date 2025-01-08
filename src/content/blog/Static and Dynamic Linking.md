@@ -256,8 +256,7 @@ ELF魔数：最前面的 Magic 的十六个字节表示
 - 第6个字节表示ELF文件的主版本号，一般是1
 - 后面的9个字节ELF标准没有定义，作为扩展使用
 
-
-默认我们内核是开启地址随机化的
+当前内核是开启地址随机化的
 
 ```bash
 root@wangzy115-bp3eh ~/s/Link (link_example_1)# cat /proc/sys/kernel/randomize_va_space
@@ -267,7 +266,6 @@ root@wangzy115-bp3eh ~/s/Link (link_example_1)# cat /proc/sys/kernel/randomize_v
 ```
 
 ![](assets/20250106_190917_image.png)
-
 
 ![](assets/20250106_190952_image.png)
 
@@ -279,22 +277,22 @@ Position-Independent Executable (PIE)：
 * 这意味着代码可以被加载到内存中的任何地址，而不需要固定的加载基址。
 * 使用位置无关代码（Position-Independent Code, PIC），使得代码中的绝对地址依赖被最小化。
 
-
-| 特性                 | EXEC（Executable）       | DYN（Position-Independent Executable, PIE） |
-| ---------------------- | -------------------------- | --------------------------------------------- |
-| 加载地址             | 固定加载地址             | 随机化（受 ASLR 影响）                      |
-| 是否使用绝对地址     | 使用绝对地址             | 使用相对地址                                |
-| 是否可重定位         | 不可重定位               | 可重定位                                    |
-| 安全性（抗攻击能力） | 较低                     | 较高（因为地址随机化）                      |
-| 调用共享库           | 支持                     | 支持                                        |
-| 示例                 | 标准静态或动态可执行文件 | 启用 PIE 选项编译的可执行文件               |
-
 动态加载与链接:
 
 * DYN 文件通常需要一个动态链接器来加载和解析符号。
 * 动态链接器负责将 DYN 文件和其依赖的库加载到内存，并处理符号重定位。
 
-在编译时加入`-no-pie`参数后，观察生成的可执行文件，Type变成了EXEC（Executable file）,以及Entry point address的地址变化
+vvar (Virtual Variable Page)
+
+* 是内核映射到用户态的一个只读虚拟内存区域。
+* 用于为用户态程序提供某些内核状态信息，例如高效访问时间信息（如`CLOCK_MONOTONIC` 或`CLOCK_REALTIME`）
+* 避免用户态调用系统调用获取这些数据，从而减少用户态与内核态的上下文切换，提高性能。
+
+vdso (Virtual Dynamically Shared Object)
+
+* 是内核为用户态程序提供的一个特殊的共享库（.so 文件）
+
+在编译时加入`-no-pie`参数后，观察生成的可执行文件，Type变成了EXEC（Executable file），下面可以看到Entry point address的地址变化
 
 ![](assets/20250106_224031_image.png)
 
@@ -302,7 +300,7 @@ Position-Independent Executable (PIE)：
 
 ![](assets/20250106_231218_image.png)
 
-使用默认编译
+使用默认编译（pie）
 
 ![](assets/20250106_231449_image.png)
 
@@ -311,7 +309,18 @@ Position-Independent Executable (PIE)：
 ![](assets/20250106_231159_image.png)
 
 
+| 编译选项 / 状态 | ASLR 打开                            | ASLR 关闭                              |
+| ----------------- | -------------------------------------- | ---------------------------------------- |
+| **PIE 打开**    | 程序和其他内存段地址随机化，安全性高 | 程序和其他内存段地址固定，便于调试     |
+| **PIE 关闭**    | 程序地址固定，堆、栈、共享库随机化   | 所有地址固定，最方便调试，但安全性最低 |
 
+pie编译 + 是否打开随机化
+
+![](assets/20250107_105100_image.png)
+
+nopie编译 + 是否打开随机化
+
+![](assets/20250107_104910_image.png)
 
 ### 节头部表（Section Header Table）
 
@@ -385,7 +394,7 @@ ELF的段结构就是由段表决定的。通过 `readelf -S` 命令可以进�
 
 ![](assets/20241231_153451_1735630488864.jpg)
 
-![](http://localhost:10001/media/uploads/af37f089404843f19578bf20b0291a0d.png)
+![](assets/20250107_143308_1736231577252.jpg)
 
 * Offset: 表示需要纠正的符号引用的起始位置在目标段的偏移
 * Info: 包含符号索引和类型信息。
@@ -433,6 +442,8 @@ BSS段未初始化的全局变量和静态变量，只是预留一个**未定义
 * 段名，由编译器产生，值是该段的其实地址
 * 局部符号，编译单元内部可见
 * 行号信息，目标文件中的指令和源代码中的对应关系
+
+![](assets/20250107_144456_image.png)
 
 ![](assets/20241231_153038_1735630222548.jpg)
 
